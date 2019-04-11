@@ -33,6 +33,10 @@ class KycRequest(Base):
     def count(cls, session):
         return session.query(cls).count()
 
+    @classmethod
+    def from_token(cls, session, token):
+        return session.query(cls).filter(cls.token == token).first()
+
     def __repr__(self):
         return '<KycRequest %r>' % (self.token)
 

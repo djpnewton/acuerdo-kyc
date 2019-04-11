@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 import os
 import logging
+import secrets
 
-from flask import Flask
+from flask import Flask, request, jsonify, abort
 
 from database import db_session, init_db
 from models import KycRequest
@@ -23,7 +24,33 @@ def setup_logging(level):
 
 @app.route('/')
 def hello():
-    return 'Hello World!'
+    request_count = KycRequest.count(db_session)
+    return 'Hello World! %d requests created' % request_count
+
+@app.route('/request', methods=['POST'])
+def register():
+    content = request.json
+    token = content['token']
+    req = KycRequest.from_token(db_session, token)
+    if req:
+        print("%s already exists" % token)
+        abort(400)
+    print("creating for %s" % token)
+    greenid_verification_id = secrets.token_hex(16)
+    req = KycRequest(token, greenid_verification_id)
+    db_session.add(req)
+    db_session.commit()
+    return jsonify(req.to_json())
+
+@app.route('/status', methods=['POST'])
+def status():
+    content = request.json
+    token = content['token']
+    print("looking for %s" % token)
+    req = KycRequest.from_token(db_session, token)
+    if req:
+        return jsonify(req.to_json())
+    return abort(404)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)
