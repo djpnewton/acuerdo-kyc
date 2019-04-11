@@ -1,0 +1,4 @@
+Flask==1.0.2
+requests==2.20.0
+sqlalchemy==1.2.8
+marshmallow==2.15.3
