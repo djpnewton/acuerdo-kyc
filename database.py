@@ -3,8 +3,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-engine = create_engine("sqlite:///%s/kyc-test.db" % dir_path, convert_unicode=True)
+if os.getenv("DATABASE_URL"):
+    db_url = os.getenv("DATABASE_URL")
+else:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    db_url = "sqlite:///%s/kyc-test.db" % dir_path
+engine = create_engine(db_url, convert_unicode=True)
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
