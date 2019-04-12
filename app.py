@@ -3,7 +3,7 @@ import os
 import logging
 import secrets
 
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, render_template
 
 from database import db_session, init_db
 from models import KycRequest
@@ -28,7 +28,7 @@ def hello():
     return 'Hello World! %d requests created' % request_count
 
 @app.route('/request', methods=['POST'])
-def register():
+def request_create():
     content = request.json
     token = content['token']
     req = KycRequest.from_token(db_session, token)
@@ -51,6 +51,19 @@ def status():
     if req:
         return jsonify(req.to_json())
     return abort(404)
+
+@app.route('/request/<token>', methods=['GET', 'POST'])
+def request_action(token=None):
+    CMP = 'completed'
+    req = KycRequest.from_token(db_session, token)
+    if not req:
+        return abort(404, "sorry, request not found")
+    if request.method == 'GET':
+        return render_template('request.html', token=token, completed=req.status==CMP)
+    req.status = CMP
+    db_session.add(req)
+    db_session.commit()
+    return render_template('request.html', token=token, completed=True)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)

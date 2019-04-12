@@ -10,6 +10,7 @@ import base64
 import json
 
 URL_BASE = "http://localhost:5000/"
+#URL_BASE = "https://bronze-kyc-test.herokuapp.com/"
 
 EXIT_NO_COMMAND = 1
 
