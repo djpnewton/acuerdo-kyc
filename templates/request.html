@@ -8,54 +8,203 @@
         <meta name="description" content="">
         <meta name="author" content="">
 
-        <title>Bare - Start Bootstrap Template</title>
+        <title>KYC TEST</title>
+
+        <!-- green id css -->
+        <link rel="stylesheet" type="text/css" media="screen" href="https://simpleui-test-au.vixverify.com/df/assets/stylesheets/greenid.css"/>
 
         <!-- Bootstrap core CSS -->
-        <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- jquery UI CSS -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" rel="stylesheet">
 
     </head>
 
     <body>
 
         <!-- Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark static-top">
+        <nav class="navbar navbar-inverse">
             <div class="container">
-                <a class="navbar-brand" href="#">Start Bootstrap</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarResponsive">
-                    <ul class="navbar-nav ml-auto">
-                        <li class="nav-item active">
-                            <a class="nav-link" href="#">Home
-                                <span class="sr-only">(current)</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">About</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Services</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Contact</a>
-                        </li>
-                    </ul>
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">KYC TEST</a>
                 </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li class="active"><a href="#">Home</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
             </div>
         </nav>
 
         <!-- Page Content -->
         <div class="container">
             <div class="row">
-                <div class="col-lg-12 text-center">
-                    <h1 class="mt-5">Submit KYC Data</h1>
+                <div class="col-lg-12">
                     {% if not completed %}
-                    <p>Nothing here yet :)</p>
-                    <hr />
-                    <form method="post">
-                        <input type="hidden" name="token" value="{{token}}" />
-                        <button type="submit" class="btn btn-primary">Submit</input>
+                        {% if verification_token %}
+                    <div id="thebutton">
+                        <p>Do you want to continue your verification?</p>
+                        <button onclick="continueVerification()">Yes</button>
+                    </div>
+                        {% endif %}
+                    <div id="greenid-div">
+                        {% if not verification_token %}
+						<h3 style="margin-top: 40px;">Provide your details to begin</h3>
+                        {% endif %}
+					</div>
+
+                    <form id="theform" method="post">
+                        <input type="hidden" id="token" value="{{token}}" name="token"/>
+                        <input type="hidden" id="accountId" value="{{account_id}}" name="accountId"/>
+                        <input type="hidden" id="apiCode" value="{{api_code}}" name="apiCode"/>
+                        <input type="hidden" id="verificationId" value="" name="verificationId"/>
+                        <input type="hidden" id="verificationToken" value="" name="verificationToken"/>
+                        <input type="hidden" id="usethiscountry" value="NZ" name="country"/>
+
+                        <div class="row">
+                            <div class="form-group col-sm-4">
+                                <label for="givenNames">First name</label>
+                                <input type="text" class="form-control" id="givenNames" placeholder="Enter given name">
+                            </div>
+                            <div class="form-group col-sm-4">
+                                <label for="middleNames">Middle name</label>
+                                <input type="text" class="form-control" id="middleNames" placeholder="Enter middle name">
+                            </div>
+                            <div class="form-group col-sm-4">
+                                <label for="surname">Surname</label>
+                                <input type="text" class="form-control" id="surname" placeholder="Enter surname">
+                            </div>
+                        </div>
+
+                        <div id="address-fields">
+											
+							<div id="address-harmony-div" style="display:none">
+								<div class="row">
+									<div class="form-group col-sm-6">
+										<label for="fullAddress" class="control-label">Address</label>
+					                	<input id="fullAddress" type="text" class="form-control" placeholder="Start typing and select from the list that appears..."/>	
+					            	</div>
+								</div>
+								<input type="hidden" id="nzsuburb"/>
+								<input type="hidden" id="nztown"/>
+								<input type="hidden" id="nzstreetType"/>
+						
+							</div>
+							
+							<div id="address-non-harmony-div">
+						
+							<hr/>
+							
+							<fieldset>
+								<label>Address</label>
+								
+								<div class="row">
+					
+						            <div class="form-group col-sm-2">
+						                <label for="flatNumber" class="control-label">Unit Number</label>
+						                <input type="text" id="flatNumber" name="flatNumber" class="form-control"/>
+						            </div>
+					
+						            <div class="form-group col-sm-2">
+						                <label for="streetNumber" class="control-label">Street Number</label>
+						                <input type="text" id="streetNumber" name="streetNumber" class="form-control"/>
+						            </div>
+					
+						            <div class="form-group col-sm-4">
+						                <label for="streetName" class="control-label">Street Name</label>
+						                <input type="text" id="streetName" name="streetName" class="form-control"/>
+						            </div>
+					
+						            <div class="form-group col-sm-4">
+						                <label for="streetType" class="control-label">Street Type</label>
+					                    <select id="streetType" class="form-control">
+						                	<option value="" selected="selected">Select your street type...</option>
+						                	<option value="AVE">Avenue</option>
+											<option value="CIR">Circle</option>
+											<option value="CCT">Circuit</option>
+											<option value="CL">Close</option>
+											<option value="CT">Court</option>
+											<option value="CRES">Crescent</option>
+											<option value="DR">Drive</option>
+											<option value="ESP">Esplanade</option>
+											<option value="EXP">Expressway</option>
+											<option value="HWY">Highway</option>
+											<option value="LANE">Lane</option>
+											<option value="MWY">Motorway</option>
+											<option value="PDE">Parade</option>
+											<option value="PL">Place</option>
+											<option value="RD">Road</option>
+											<option value="SQ">Square</option>
+											<option value="ST">Street</option>
+											<option value="TCE">Terrace</option>
+											<option value="WAY">Way</option>
+					                    </select>
+						            </div>
+						            
+								</div>
+								
+								<div class="row">
+					
+						            <div class="form-group col-sm-4">
+						                <label for="suburb" class="control-label">Suburb</label>
+						                <input type="text" id="suburb" name="suburb" class="form-control"/>
+						            </div>
+						            
+						            <!-- Begin towncity Dropdown -->
+									<div class="form-group col-sm-4">
+										<label for="townCity" class="control-label">Town/City</label>
+										<input type="text" id="townCity" name="townCity" class="form-control"/>
+									</div>
+						            <!-- End towncity Dropdown -->
+						            
+	                                					
+	
+						            <div class="form-group col-sm-2">
+						                <label for="postcode" class="control-label">Postcode</label>
+						                <input type="text" id="postcode" name="postcode" class="form-control"/>
+						            </div>
+					            
+								</div>
+								
+							</fieldset>
+							
+							<hr/>
+						</div>	
+							
+						</div>
+						<div id="address-loading-placeholder" style="display:none"><label class="control-label">Address fields loading...</label></div>
+
+                        <div class="row">
+							<div class="form-group col-sm-3 col-lg-2">
+								<label for="dob" class="control-label">Date of Birth (DD/MM/YYYY)</label>
+								<div class="input-group date">
+									<input type="text" name="dob" id="dob" class="form-control" aria-required="true" />
+									<span class="input-group-addon datepicker"><span class="glyphicon glyphicon-calendar"></span></span>
+								</div>
+							</div>
+						</div>
+						
+						<div class="row" style="margin-bottom: 20px">
+				            <div class="form-group col-sm-6">
+				                <label for="email" class="control-label">Email</label>
+				                <input type="text" id="email" name="email" class="form-control">
+				            </div>
+						</div>
+						
+						<div class="row">
+							<div class="form-group col-sm-12">
+								<input value="Submit details" type="submit" id="submitbob" name="submitbob" class="btn btn-primary" />
+							</div>
+						</div>
                     </form>
                     {% else %}
                     <p>completed</p>
@@ -65,8 +214,55 @@
         </div>
 
         <!-- Bootstrap core JavaScript -->
-        <script src="/static/vendor/jquery/jquery.min.js"></script>
-        <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+        <!-- datepicker -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.8.0/js/bootstrap-datepicker.min.js"></script>
+
+        <!-- green id helper stuff -->
+        <script src="/static/js/demo.js"></script>
+
+        <!-- green id -->
+        <script src="https://simpleui-test-au.vixverify.com/df/javascripts/greenidConfig.js"></script>
+		<script src="https://simpleui-test-au.vixverify.com/df/javascripts/greenidui.min.js"></script>
+
+        <script type="text/javascript">                 
+			
+			greenidJQuery("document").ready(function() {
+				
+				// The setup function initialises the greenID Simple UI and passes in key variables, 
+				// such as the div ID where the form controls will be injected and the ID of your form.
+				// A full list of parameters is available at https://vixverify.atlassian.net/wiki/display/GREEN/Using+the+SimpleUI#UsingtheSimpleUI-JavascriptSetupforRegisteringaNewPerson
+			    greenidUI.setup({
+				    environment: greenidEnvironment,	
+				    formId: "theform",
+				    frameId: "greenid-div",
+				    country: "usethiscountry",
+				    debug: true,
+				    preSubmitValidationCallback: onValidation,
+                    registerCallback: onRegister
+			    });
+			    
+			    // if you want to override anything from the greenidConfig.js file, you would use this function
+			    greenidConfig.setOverrides();
+
+                {% if verification_token %}
+                    $("#theform").hide();
+                {% endif %}
+
+			})
+
+            function continueVerification() {
+                {% if verification_token %}
+                $("#thebutton").hide();
+                greenidUI.show("{{account_id}}", "{{api_code}}", "{{verification_token}}");
+                {% endif %}
+            }
+
+		</script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
     </body>
 
