@@ -20,7 +20,7 @@ class KycRequest(Base):
     id = Column(Integer, primary_key=True)
     date = Column(Float, nullable=False, unique=False)
     token = Column(String, nullable=False, unique=True)
-    greenid_verification_id = Column(String, nullable=False, unique=True)
+    greenid_verification_id = Column(String, nullable=True, unique=True)
     status = Column(String )
 
     def __init__(self, token, greenid_verification_id):

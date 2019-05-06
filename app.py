@@ -58,14 +58,16 @@ def get_verification_result(verification_id):
     current_status = client.service.getVerificationResult(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None, None)
     return current_status.verificationResult.overallVerificationStatus
 
-def create_sig(api_key, api_secret, message):
+def create_sig(api_secret, message):
     _hmac = hmac.new(api_secret.encode('latin-1'), msg=message, digestmod=hashlib.sha256)
     signature = _hmac.digest()
     signature = base64.b64encode(signature).decode("utf-8")
     return signature
 
-def check_auth(sig, body):
-    our_sig = create_sig(API_KEY, API_SECRET, body)
+def check_auth(api_key, sig, body):
+    if api_key != API_KEY:
+        return False
+    our_sig = create_sig(API_SECRET, body)
     return sig == our_sig
 
 @app.route('/')
@@ -77,8 +79,9 @@ def hello():
 def request_create():
     sig = request.headers.get('X-Signature')
     content = request.json
+    api_key = content['api_key']
     token = content['token']
-    if not check_auth(sig, request.data):
+    if not check_auth(api_key, sig, request.data):
         print('auth failure')
         abort(400)
     req = KycRequest.from_token(db_session, token)
@@ -86,7 +89,7 @@ def request_create():
         print('%s already exists' % token)
         abort(400)
     print("creating for %s" % token)
-    greenid_verification_id = ''
+    greenid_verification_id = None
     req = KycRequest(token, greenid_verification_id)
     db_session.add(req)
     db_session.commit()

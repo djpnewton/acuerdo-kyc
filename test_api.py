@@ -34,7 +34,7 @@ def construct_parser():
 
     return parser
 
-def create_sig(api_key, api_secret, message):
+def create_sig(api_secret, message):
     _hmac = hmac.new(api_secret.encode('latin-1'), msg=message.encode('latin-1'), digestmod=hashlib.sha256)
     signature = _hmac.digest()
     signature = base64.b64encode(signature).decode("utf-8")
@@ -45,13 +45,13 @@ def req(endpoint, params=None, api_key=None, api_secret=None):
         if not params:
             params = {}
         params["nonce"] = int(time.time())
-        params["key"] = api_key
+        params["api_key"] = api_key
     url = URL_BASE + endpoint
     if params:
         headers = {"Content-type": "application/json"}
         body = json.dumps(params)
         if api_key:
-            headers["X-Signature"] = create_sig(api_key, api_secret, body)
+            headers["X-Signature"] = create_sig(api_secret, body)
         print("   POST - " + url)
         r = requests.post(url, headers=headers, data=body)
     else:
