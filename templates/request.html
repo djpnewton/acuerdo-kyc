@@ -52,8 +52,8 @@
                     {% if not completed %}
                         {% if verification_token %}
                     <div id="thebutton">
-                        <p>Do you want to continue your verification?</p>
-                        <button onclick="continueVerification()">Yes</button>
+						<h3 style="margin-top: 40px;">Do you want to continue your verification?</h3>
+                        <button type="button" class="btn btn-primary" onclick="continueVerification()">Yes</button>
                     </div>
                         {% endif %}
                     <div id="greenid-div">
@@ -207,7 +207,7 @@
 						</div>
                     </form>
                     {% else %}
-                    <p>completed</p>
+                    <h3 style="margin-top: 40px;">Completed</h3>
                     {% endif %}
                 </div>
             </div>
