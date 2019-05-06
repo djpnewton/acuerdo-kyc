@@ -2,6 +2,10 @@
 import os
 import logging
 import secrets
+import hmac
+import hashlib
+import base64
+import sys
 
 from flask import Flask, request, jsonify, abort, render_template
 import zeep
@@ -17,12 +21,23 @@ GREENID_WEBSERVICE_ENDPOINT = 'https://test-au.vixverify.com/Registrations-Regis
 GREENID_ACCOUNT_ID = os.environ.get('GREENID_ACCOUNT_ID', '')
 GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
+API_KEY = os.environ.get('API_KEY', '')
+API_SECRET = os.environ.get('API_SECRET', '')
 if not GREENID_ACCOUNT_ID:
     print('ERROR: no greenid account id')
+    sys.exit(1)
 if not GREENID_SIMPLEUI_AUTH:
     print('ERROR: no greenid simpleui auth')
+    sys.exit(1)
 if not GREENID_API_AUTH:
     print('ERROR: no greenid api auth')
+    sys.exit(1)
+if not API_KEY:
+    print('ERROR: no api key')
+    sys.exit(1)
+if not API_SECRET:
+    print('ERROR: no api secret')
+    sys.exit(1)
 
 def setup_logging(level):
     # setup logging
@@ -43,6 +58,16 @@ def get_verification_result(verification_id):
     current_status = client.service.getVerificationResult(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None, None)
     return current_status.verificationResult.overallVerificationStatus
 
+def create_sig(api_key, api_secret, message):
+    _hmac = hmac.new(api_secret.encode('latin-1'), msg=message, digestmod=hashlib.sha256)
+    signature = _hmac.digest()
+    signature = base64.b64encode(signature).decode("utf-8")
+    return signature
+
+def check_auth(sig, body):
+    our_sig = create_sig(API_KEY, API_SECRET, body)
+    return sig == our_sig
+
 @app.route('/')
 def hello():
     request_count = KycRequest.count(db_session)
@@ -50,8 +75,12 @@ def hello():
 
 @app.route('/request', methods=['POST'])
 def request_create():
+    sig = request.headers.get('X-Signature')
     content = request.json
     token = content['token']
+    if not check_auth(sig, request.data):
+        print('auth failure')
+        abort(400)
     req = KycRequest.from_token(db_session, token)
     if req:
         print('%s already exists' % token)
