@@ -17,7 +17,10 @@ init_db()
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
+PRODUCTION = os.environ.get('PRODUCTION', '')
 GREENID_WEBSERVICE_ENDPOINT = 'https://test-au.vixverify.com/Registrations-Registrations/DynamicFormsServiceV3?WSDL'
+if PRODUCTION:
+    GREENID_WEBSERVICE_ENDPOINT = 'todo_production_greenid_endpoint'
 GREENID_ACCOUNT_ID = os.environ.get('GREENID_ACCOUNT_ID', '')
 GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
@@ -72,8 +75,10 @@ def check_auth(api_key, sig, body):
 
 @app.route('/')
 def hello():
-    request_count = KycRequest.count(db_session)
-    return 'Hello World! %d requests created' % request_count
+    if PRODUCTION:
+        return 'kyc svc'
+    else:
+        return 'kyc svc (DEV MODE)'
 
 @app.route('/request', methods=['POST'])
 def request_create():
@@ -132,7 +137,7 @@ def request_action(token=None):
     if req.greenid_verification_id:
         # get verification token so we can continue if needed
         verification_token = get_verification_token(req.greenid_verification_id)
-    return render_template('request.html', token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token)
+    return render_template('request.html', production=PRODUCTION, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)
