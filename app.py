@@ -26,6 +26,7 @@ GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
+PARENT_SITE = os.environ.get('PARENT_SITE', '')
 if not GREENID_ACCOUNT_ID:
     print('ERROR: no greenid account id')
     sys.exit(1)
@@ -40,6 +41,9 @@ if not API_KEY:
     sys.exit(1)
 if not API_SECRET:
     print('ERROR: no api secret')
+    sys.exit(1)
+if not PARENT_SITE:
+    print('ERROR: no parent site')
     sys.exit(1)
 
 def setup_logging(level):
@@ -137,7 +141,7 @@ def request_action(token=None):
     if req.greenid_verification_id:
         # get verification token so we can continue if needed
         verification_token = get_verification_token(req.greenid_verification_id)
-    return render_template('request.html', production=PRODUCTION, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token)
+    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)
