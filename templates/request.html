@@ -223,7 +223,7 @@
                     {% else %}
                     <h3 style="margin-top: 40px;">Kyc Completed</h3>
                     <p>
-                        Your identity verification is complete. You can return to <a href="{{parent_site}}">{{parent_site}}</a>.
+                    Your identity verification is complete.<span id="return-to-parent" style="display: none"> You can return to <a href="{{parent_site}}">{{parent_site}}</a>.</span>
                     </p>
                     <p>Thank-you.</p>
                     {% endif %}
@@ -250,6 +250,9 @@
 		<script src="https://simpleui-test-au.vixverify.com/df/javascripts/greenidui.min.js"></script>
         {% endif %}
 
+        <!-- is-webview -->
+        <script src="https://wzrd.in/standalone/is-webview@1.0.1"></script>
+
         <script type="text/javascript">                 
 			
 			greenidJQuery("document").ready(function() {
@@ -274,6 +277,11 @@
                     $("#theform").hide();
                 {% endif %}
 
+                {% if completed %}
+                if (!isWebview(navigator.userAgent)) {
+                    greenidJQuery("#return-to-parent").show();
+                }
+                {% endif %}
 			})
 
             function continueVerification() {
