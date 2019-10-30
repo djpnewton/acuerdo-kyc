@@ -279,7 +279,8 @@
 
                 {% if completed %}
                 if (!isWebview(navigator.userAgent)) {
-                    greenidJQuery("#return-to-parent").show();
+                    // webview detection not working
+                    //greenidJQuery("#return-to-parent").show();
                 }
                 {% endif %}
 			})
