@@ -76,7 +76,7 @@
                         {% endif %}
 					</div>
 
-                    <form id="theform" method="post">
+                    <form id="theform" method="post" onsubmit="workoutNZsuburb();">
                         <input type="hidden" id="token" value="{{token}}" name="token"/>
                         <input type="hidden" id="accountId" value="{{account_id}}" name="accountId"/>
                         <input type="hidden" id="apiCode" value="{{api_code}}" name="apiCode"/>
@@ -234,6 +234,8 @@
         <!-- Bootstrap core JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
+        <!-- jquery ui -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
         <!-- datepicker -->
         <script src="/static/js/bootstrap-datepicker.js"></script>
@@ -249,6 +251,10 @@
         <script src="https://simpleui-test-au.vixverify.com/df/javascripts/greenidConfig.js"></script>
 		<script src="https://simpleui-test-au.vixverify.com/df/javascripts/greenidui.min.js"></script>
         {% endif %}
+
+        <!-- harmony -->
+        <script src="/static/js/harmony-1.6.7.min.js"></script>
+        <script src="/static/js/harmony-ui-1.6.7.min.js"></script>
 
         <!-- is-webview -->
         <script src="https://wzrd.in/standalone/is-webview@1.0.1"></script>
@@ -275,6 +281,8 @@
 
                 {% if verification_token %}
                     $("#theform").hide();
+                {% elif not completed %}
+                    initHarmony();
                 {% endif %}
 
                 {% if completed %}
@@ -292,9 +300,79 @@
                 {% endif %}
             }
 
-		</script>
+            function initHarmony() {
+                Harmony.useEnv("https://hosted.mastersoftgroup.com");
+                Harmony.init("{{harmony_user}}", "{{harmony_pass}}", Harmony.AUSTRALIA);
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+                // Use the JSONP protocol for compatibility with IE 8/9.
+                Harmony.useProtocol(Harmony.JSONP);
+
+                var opt = {
+                    minLength: 3, 
+                    skipTransaction: false,
+                    onSelect: function(event, ui) {
+                        console.log('address selected: ' + ui.item.fullAddress);
+                    }
+                };
+                Harmony.UI.addressLookup($("#fullAddress"), Harmony.NZAD, opt);
+
+                // Configure the output fields.
+                Harmony.UI.addField(Harmony.SUBDWELLING, $("#flatNumber"));
+                Harmony.UI.addField(Harmony.STREET_NUMBER, $("#streetNumber"));
+                Harmony.UI.addField(Harmony.STREET_NAME, $("#streetName"));
+                Harmony.UI.addField(Harmony.STREET_TYPE, $("#nzstreetType"));
+                Harmony.UI.addField(Harmony.POSTCODE, $("#postcode"));
+                
+                Harmony.UI.addField(Harmony.SUBURB, $("#nzsuburb"));
+                Harmony.UI.addField(Harmony.TOWN_CITY, $("#nztown"));
+
+                var tid = setInterval(function() {
+                    if (Harmony._transactionID !== null) {
+                        $('#address-harmony-div').show();
+                        $('#address-non-harmony-div').hide();
+                        clearTimeout(tid);
+                    }
+                }, 500);
+            }
+
+            function workoutNZsuburb() {
+                var realsuburb = document.getElementById('suburb');
+                var nzsuburb = document.getElementById('nzsuburb');
+                var nztown = document.getElementById('nztown');
+                
+                var nzstreettypeField = document.getElementById('nzstreetType');
+                var realstreetTypeField = document.getElementById('streetType');
+                var towncityField = document.getElementById('townCity');
+                
+                if(towncityField != null)
+                {
+                    if (nzsuburb != null && nzsuburb.value)
+                    {
+                        realsuburb.value = nzsuburb.value;	
+                    }
+                    
+                    if (nztown != null && nztown.value)
+                    {
+                        towncityField.value = nztown.value;	
+                    }
+                }
+                else
+                {
+                    if(nztown != null && nztown.value)
+                    {
+                        realsuburb.value = nztown.value;	
+                    }
+                }
+                
+                if(nzstreettypeField != null && realstreetTypeField !=null && nzstreettypeField.value)
+                {
+                    // swap id
+                    realstreetTypeField.id = "nzstreetType";
+                    nzstreettypeField.id = "streetType";
+                }
+            }
+
+		</script>
 
     </body>
 

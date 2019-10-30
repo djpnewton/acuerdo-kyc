@@ -24,6 +24,8 @@ if PRODUCTION:
 GREENID_ACCOUNT_ID = os.environ.get('GREENID_ACCOUNT_ID', '')
 GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
+HARMONY_USER = os.environ.get('HARMONY_USER', '')
+HARMONY_PASS = os.environ.get('HARMONY_PASS', '')
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
 PARENT_SITE = os.environ.get('PARENT_SITE', '')
@@ -160,7 +162,7 @@ def request_action(token=None):
         if user:
             email = user.email
     # render template
-    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token, email=email)
+    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)
