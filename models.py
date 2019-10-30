@@ -43,3 +43,40 @@ class KycRequest(Base):
     def to_json(self):
         schema = KycRequestSchema()
         return schema.dump(self).data
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False, unique=True)
+
+    def __init__(self, email):
+        self.email = email
+
+    @classmethod
+    def count(cls, session):
+        return session.query(cls).count()
+
+    @classmethod
+    def from_id(cls, session, id):
+        return session.query(cls).filter(cls.id == id).first()
+
+    @classmethod
+    def from_email(cls, session, email):
+        return session.query(cls).filter(cls.email == email).first()
+
+class UserRequest(Base):
+    __tablename__ = 'user_requests'
+    user_id = Column(Integer, primary_key=True)
+    kyc_request_id = Column(Integer, primary_key=True)
+
+    def __init__(self, user, kyc_request):
+        self.user_id = user.id
+        self.kyc_request_id = kyc_request.id
+
+    @classmethod
+    def count(cls, session):
+        return session.query(cls).count()
+
+    @classmethod
+    def from_request(cls, session, kyc_request):
+        return session.query(cls).filter(cls.kyc_request_id == kyc_request.id).first()

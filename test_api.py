@@ -26,6 +26,7 @@ def construct_parser():
     parser_req_create.add_argument("api_key", metavar="API_KEY", type=str, help="the API key")
     parser_req_create.add_argument("api_secret", metavar="API_SECRET", type=str, help="the API secret")
     parser_req_create.add_argument("token", metavar="TOKEN", type=str, help="the request token")
+    parser_req_create.add_argument("email", metavar="EMAIL", type=str, help="the requesters email address")
 
     parser_req_status = subparsers.add_parser("request_status", help="Check a request request")
     parser_req_status.add_argument("api_key", metavar="API_KEY", type=str, help="the API key")
@@ -70,7 +71,7 @@ def check_request_status(r):
 
 def request_create(args):
     print(":: calling request create..")
-    r = req("request", {"token": args.token}, args.api_key, args.api_secret)
+    r = req("request", {"token": args.token, "email": args.email}, args.api_key, args.api_secret)
     check_request_status(r)
     print(r.text)
 
