@@ -59,8 +59,13 @@ def setup_logging(level):
     logging.getLogger().handlers.clear()
 
 def get_verification_token(verification_id):
-    client = zeep.Client(GREENID_WEBSERVICE_ENDPOINT)
-    return client.service.getVerificationToken(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None)
+    try:
+        client = zeep.Client(GREENID_WEBSERVICE_ENDPOINT)
+        return client.service.getVerificationToken(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None)
+    except zeep.exceptions.Fault as ex:
+        print('failed to get verification token')
+        print(ex)
+    return None
 
 def get_verification_result(verification_id):
     client = zeep.Client(GREENID_WEBSERVICE_ENDPOINT)
