@@ -261,8 +261,7 @@
 
         <script type="text/javascript">                 
 			
-			greenidJQuery("document").ready(function() {
-				
+			$(document).ready(function() {
 				// The setup function initialises the greenID Simple UI and passes in key variables, 
 				// such as the div ID where the form controls will be injected and the ID of your form.
 				// A full list of parameters is available at https://vixverify.atlassian.net/wiki/display/GREEN/Using+the+SimpleUI#UsingtheSimpleUI-JavascriptSetupforRegisteringaNewPerson
@@ -283,13 +282,6 @@
                     $("#theform").hide();
                 {% elif not completed %}
                     initHarmony();
-                {% endif %}
-
-                {% if completed %}
-                if (!isWebview(navigator.userAgent)) {
-                    // webview detection not working
-                    //greenidJQuery("#return-to-parent").show();
-                }
                 {% endif %}
 			})
 
@@ -371,6 +363,20 @@
                     nzstreettypeField.id = "streetType";
                 }
             }
+
+            {% if completed %}
+            $(document).ready(function() {
+                /* webview detection not working
+                if (!isWebview(navigator.userAgent)) {
+                    $("#return-to-parent").show();
+                }
+                */
+                if (window.hasOwnProperty("ReactNativeWebView")) {
+                    console.log("react native webview");
+                    window.ReactNativeWebView.postMessage("kycCompleted");
+                }
+            });
+            {% endif %}
 
 		</script>
 
