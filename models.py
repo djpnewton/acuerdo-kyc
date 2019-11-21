@@ -9,10 +9,31 @@ from marshmallow import Schema, fields
 
 from database import Base
 
+class GreenId(Base):
+    __tablename__ = 'greenid'
+    id = Column(Integer, primary_key=True)
+    greenid_verification_id = Column(String, nullable=False, unique=True)
+    kyc_request_id = Column(Integer, ForeignKey('kyc_requests.id'))
+    kyc_request = relationship("KycRequest", back_populates="greenid")
+
+    def __init__(self, kyc_request, greenid_verification_id):
+        self.kyc_request = kyc_request
+        self.greenid_verification_id = greenid_verification_id
+
+class EzyPay(Base):
+    __tablename__ = 'ezypay'
+    id = Column(Integer, primary_key=True)
+    ezypay_username = Column(String, nullable=False, unique=True)
+    kyc_request_id = Column(Integer, ForeignKey('kyc_requests.id'))
+    kyc_request = relationship("KycRequest", back_populates="ezypay")
+
+    def __init__(self, kyc_request, ezypay_username):
+        self.kyc_request = kyc_request
+        self.ezypay_username = ezypay_username
+
 class KycRequestSchema(Schema):
     date = fields.Float()
     token = fields.String()
-    greenid_verification_id = fields.String()
     status = fields.String()
 
 class KycRequest(Base):
@@ -20,13 +41,13 @@ class KycRequest(Base):
     id = Column(Integer, primary_key=True)
     date = Column(Float, nullable=False, unique=False)
     token = Column(String, nullable=False, unique=True)
-    greenid_verification_id = Column(String, nullable=True, unique=True)
-    status = Column(String )
+    status = Column(String)
+    greenid = relationship("GreenId", uselist=False, back_populates="kyc_request")
+    ezypay = relationship("EzyPay", uselist=False, back_populates="kyc_request")
 
-    def __init__(self, token, greenid_verification_id):
+    def __init__(self, token):
         self.date = time.time()
         self.token = token
-        self.greenid_verification_id = greenid_verification_id
         self.status = "created"
 
     @classmethod

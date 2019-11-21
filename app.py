@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify, abort, render_template
 import zeep
 
 from database import db_session, init_db
-from models import KycRequest, User, UserRequest
+from models import KycRequest, GreenId, EzyPay, User, UserRequest
 
 init_db()
 logger = logging.getLogger(__name__)
@@ -106,8 +106,7 @@ def request_create():
         print('%s already exists' % token)
         abort(400)
     print("creating for %s" % token)
-    greenid_verification_id = None
-    req = KycRequest(token, greenid_verification_id)
+    req = KycRequest(token)
     db_session.add(req)
     db_session.commit()
     # add user (store email in db)
@@ -143,22 +142,22 @@ def request_action(token=None):
         # update verification id if we got one
         verification_id = request.form['verificationId']
         if verification_id:
-            req.greenid_verification_id = verification_id
-            db_session.add(req)
+            greenid = GreenId(req, verification_id)
+            db_session.add(greenid)
             db_session.commit()
-        if req.greenid_verification_id:
+        if req.greenid:
             # get verification token so we can continue if needed
-            verification_token = get_verification_token(req.greenid_verification_id)
+            verification_token = get_verification_token(req.greenid.greenid_verification_id)
             # get status from green id
-            result = get_verification_result(req.greenid_verification_id)
+            result = get_verification_result(req.greenid.greenid_verification_id)
             result = result.lower()
             if result[0:8] == 'verified':
                 req.status = CMP
                 db_session.add(req)
                 db_session.commit()
-    if req.greenid_verification_id:
+    if req.greenid:
         # get verification token so we can continue if needed
-        verification_token = get_verification_token(req.greenid_verification_id)
+        verification_token = get_verification_token(req.greenid.greenid_verification_id)
     # get user email from db
     email = ''
     user_req = UserRequest.from_request(db_session, req)
