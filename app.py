@@ -9,6 +9,7 @@ import sys
 
 from flask import Flask, request, jsonify, abort, render_template
 import zeep
+import requests
 
 from database import db_session, init_db
 from models import KycRequest, GreenId, EzyPay, User, UserRequest
@@ -26,6 +27,7 @@ GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
 HARMONY_USER = os.environ.get('HARMONY_USER', '')
 HARMONY_PASS = os.environ.get('HARMONY_PASS', '')
+EZYPAY_WEBSERVICE_ENDPOINT = os.environ.get('EZYPAY_WEBSERVICE_ENDPOINT', '')
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
 PARENT_SITE = os.environ.get('PARENT_SITE', '')
@@ -37,6 +39,15 @@ if not GREENID_SIMPLEUI_AUTH:
     sys.exit(1)
 if not GREENID_API_AUTH:
     print('ERROR: no greenid api auth')
+    sys.exit(1)
+if not HARMONY_USER:
+    print('ERROR: no harmony user')
+    sys.exit(1)
+if not HARMONY_PASS:
+    print('ERROR: no harmony password')
+    sys.exit(1)
+if not EZYPAY_WEBSERVICE_ENDPOINT:
+    print('ERROR: no ezypay endpoint')
     sys.exit(1)
 if not API_KEY:
     print('ERROR: no api key')
@@ -58,7 +69,7 @@ def setup_logging(level):
     # clear loggers set by any imported modules
     logging.getLogger().handlers.clear()
 
-def get_verification_token(verification_id):
+def greenid_get_verification_token(verification_id):
     try:
         client = zeep.Client(GREENID_WEBSERVICE_ENDPOINT)
         return client.service.getVerificationToken(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None)
@@ -67,10 +78,25 @@ def get_verification_token(verification_id):
         print(ex)
     return None
 
-def get_verification_result(verification_id):
+def greenid_get_verification_result(verification_id):
     client = zeep.Client(GREENID_WEBSERVICE_ENDPOINT)
     current_status = client.service.getVerificationResult(GREENID_ACCOUNT_ID, GREENID_API_AUTH, verification_id, None, None)
     return current_status.verificationResult.overallVerificationStatus
+
+def ezypay_get_verification_result(email, password):
+    params = {"action": "userlogin", "email": email, "password": password, "pin": 1234, "pinagain": 1234}
+    r = requests.post(EZYPAY_WEBSERVICE_ENDPOINT, json=params)
+    if r.status_code == 200:
+        json = r.json()
+        if json["success"]:
+            if "creditlimit" in json and "creditstatus" in json:
+                return True, None
+        else:
+            if json["message"] == "The email and password you entered don't match.":
+                return False, json["message"]
+            if json["message"] == "Your account does not appear to have ezpay setup. Please contact customer support.":
+                return False, "Your account does not have EZYPAY setup."
+    return False, "Verification using EZPAY failed."
 
 def create_sig(api_secret, message):
     _hmac = hmac.new(api_secret.encode('latin-1'), msg=message, digestmod=hashlib.sha256)
@@ -137,27 +163,40 @@ def request_action(token=None):
     req = KycRequest.from_token(db_session, token)
     if not req:
         return abort(404, 'sorry, request not found')
-    verification_token = None
+    greenid_verification_token = None
+    ezypay_verification_message = None
     if request.method == 'POST':
-        # update verification id if we got one
-        verification_id = request.form['verificationId']
-        if verification_id:
-            greenid = GreenId(req, verification_id)
+        # update [greenid] verification id if we got one
+        greenid_verification_id = request.form.get('verificationId')
+        if greenid_verification_id:
+            greenid = GreenId(req, greenid_verification_id)
             db_session.add(greenid)
             db_session.commit()
         if req.greenid:
             # get verification token so we can continue if needed
-            verification_token = get_verification_token(req.greenid.greenid_verification_id)
+            greenid_verification_token = greenid_get_verification_token(req.greenid.greenid_verification_id)
             # get status from green id
-            result = get_verification_result(req.greenid.greenid_verification_id)
+            result = greenid_get_verification_result(req.greenid.greenid_verification_id)
             result = result.lower()
             if result[0:8] == 'verified':
                 req.status = CMP
                 db_session.add(req)
                 db_session.commit()
+        # check ezypay verification
+        ezypay_email = request.form.get('ezypayEmail')
+        ezypay_pass = request.form.get('ezypayPass')
+        print(ezypay_email)
+        print(ezypay_pass)
+        if ezypay_email and ezypay_pass:
+            result, ezypay_verification_message = ezypay_get_verification_result(ezypay_email, ezypay_pass)
+            print(ezypay_verification_message)
+            if result:
+                req.status = CMP
+                db_session.add(req)
+                db_session.commit()
     if req.greenid:
         # get verification token so we can continue if needed
-        verification_token = get_verification_token(req.greenid.greenid_verification_id)
+        greenid_verification_token = greenid_get_verification_token(req.greenid.greenid_verification_id)
     # get user email from db
     email = ''
     user_req = UserRequest.from_request(db_session, req)
@@ -166,7 +205,7 @@ def request_action(token=None):
         if user:
             email = user.email
     # render template
-    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, verification_token=verification_token, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS)
+    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, greenid_verification_token=greenid_verification_token, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS, ezypay_verification_message=ezypay_verification_message)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)

@@ -63,20 +63,51 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    {% if not completed %}
-                        {% if verification_token %}
-                    <div id="thebutton">
-						<h3 style="margin-top: 40px;">Do you want to continue your verification?</h3>
-                        <button type="button" class="btn btn-primary" onclick="continueVerification()">Yes</button>
+                    {% if ezypay_verification_message %}
+                    <div id="ezypay_verification_message" class="alert alert-danger">
+                        {{ ezypay_verification_message }}
                     </div>
-                        {% endif %}
-                    <div id="greenid-div">
-                        {% if not verification_token %}
+                    {% endif %}
+
+                    {% if not completed %}
+
+                    <div id="choose_verification" style="display: none">
+						<h3 style="margin-top: 40px;">Do you have a REDRAT EZYPAY Account?</h3>
+                        <button type="button" class="btn btn-primary" onclick="chooseEzyPay()">Yes</button>
+                        <button type="button" class="btn btn-primary" onclick="chooseGreenId()">No</button>
+                    </div>
+
+                    <form id="ezypay_form" method="post" style="display: none">
+                        <input type="hidden" id="token" value="{{token}}" name="token"/>
+                        <div class="row">
+                            <div class="form-group col-sm-6">
+                                <label for="ezypayEmail">EZYPAY Email</label>
+                                <input type="text" class="form-control" name="ezypayEmail" id="ezypayEmail" placeholder="">
+                            </div>
+                            <div class="form-group col-sm-6">
+                                <label for="ezypayPass">Password</label>
+                                <input type="password" class="form-control" name="ezypayPass" id="ezypayPass" placeholder="">
+                            </div>
+                        </div>
+						<div class="row">
+							<div class="form-group col-sm-12">
+								<input value="Submit" type="submit" id="submitezypay" name="submitezypay" class="btn btn-primary" />
+							</div>
+						</div>
+                    </form>
+
+                    <div id="greenid_continue" style="display: none">
+						<h3 style="margin-top: 40px;">Do you want to continue your verification?</h3>
+                        <button type="button" class="btn btn-primary" onclick="continueGreenIdVerification()">Yes</button>
+                    </div>
+
+                    <div id="greenid_div" style="display: none">
+                        {% if not greenid_verification_token %}
 						<h3 style="margin-top: 40px;">Provide your details to begin</h3>
                         {% endif %}
 					</div>
 
-                    <form id="theform" method="post" onsubmit="workoutNZsuburb();">
+                    <form id="greenid_init_form" method="post" onsubmit="workoutNZsuburb();" style="display: none">
                         <input type="hidden" id="token" value="{{token}}" name="token"/>
                         <input type="hidden" id="accountId" value="{{account_id}}" name="accountId"/>
                         <input type="hidden" id="apiCode" value="{{api_code}}" name="apiCode"/>
@@ -262,13 +293,33 @@
         <script type="text/javascript">                 
 			
 			$(document).ready(function() {
+                {% if not completed %}
+                    {% if not greenid_verification_token %}
+                        $("#choose_verification").show();
+                    {% else %}
+                        $("#greenid_continue").show();
+                        $("#greenid_div").show();
+                    {% endif %}
+                {% endif %}
+			})
+
+            function chooseEzyPay() {
+                $("#ezypay_verification_message").hide();
+                $("#choose_verification").hide();
+                $("#ezypay_form").show();
+            }
+
+            function chooseGreenId() {
+                $("#ezypay_verification_message").hide();
+                $("#choose_verification").hide();
+
 				// The setup function initialises the greenID Simple UI and passes in key variables, 
 				// such as the div ID where the form controls will be injected and the ID of your form.
 				// A full list of parameters is available at https://vixverify.atlassian.net/wiki/display/GREEN/Using+the+SimpleUI#UsingtheSimpleUI-JavascriptSetupforRegisteringaNewPerson
 			    greenidUI.setup({
 				    environment: greenidEnvironment,	
-				    formId: "theform",
-				    frameId: "greenid-div",
+				    formId: "greenid_init_form",
+				    frameId: "greenid_div",
 				    country: "usethiscountry",
 				    debug: true,
 				    preSubmitValidationCallback: onValidation,
@@ -278,17 +329,16 @@
 			    // if you want to override anything from the greenidConfig.js file, you would use this function
 			    greenidConfig.setOverrides();
 
-                {% if verification_token %}
-                    $("#theform").hide();
-                {% elif not completed %}
-                    initHarmony();
-                {% endif %}
-			})
+                initHarmony();
 
-            function continueVerification() {
-                {% if verification_token %}
-                $("#thebutton").hide();
-                greenidUI.show("{{account_id}}", "{{api_code}}", "{{verification_token}}");
+                $("#greenid_div").show();
+                $("#greenid_init_form").show();
+            }
+
+            function continueGreenIdVerification() {
+                {% if greenid_verification_token %}
+                $("#greenid_continue").hide();
+                greenidUI.show("{{account_id}}", "{{api_code}}", "{{greenid_verification_token}}");
                 {% endif %}
             }
 
