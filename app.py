@@ -163,6 +163,14 @@ def request_action(token=None):
     req = KycRequest.from_token(db_session, token)
     if not req:
         return abort(404, 'sorry, request not found')
+    # get user email from db
+    email = ''
+    user_req = UserRequest.from_request(db_session, req)
+    if user_req:
+        user = User.from_id(db_session, user_req.user_id)
+        if user:
+            email = user.email
+    # process any posted data
     greenid_verification_token = None
     ezypay_verification_message = None
     if request.method == 'POST':
@@ -183,12 +191,9 @@ def request_action(token=None):
                 db_session.add(req)
                 db_session.commit()
         # check ezypay verification
-        ezypay_email = request.form.get('ezypayEmail')
         ezypay_pass = request.form.get('ezypayPass')
-        print(ezypay_email)
-        print(ezypay_pass)
-        if ezypay_email and ezypay_pass:
-            result, ezypay_verification_message = ezypay_get_verification_result(ezypay_email, ezypay_pass)
+        if ezypay_pass:
+            result, ezypay_verification_message = ezypay_get_verification_result(email, ezypay_pass)
             print(ezypay_verification_message)
             if result:
                 req.status = CMP
@@ -197,13 +202,6 @@ def request_action(token=None):
     if req.greenid:
         # get verification token so we can continue if needed
         greenid_verification_token = greenid_get_verification_token(req.greenid.greenid_verification_id)
-    # get user email from db
-    email = ''
-    user_req = UserRequest.from_request(db_session, req)
-    if user_req:
-        user = User.from_id(db_session, user_req.user_id)
-        if user:
-            email = user.email
     # render template
     return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, greenid_verification_token=greenid_verification_token, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS, ezypay_verification_message=ezypay_verification_message)
 
