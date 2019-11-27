@@ -309,10 +309,7 @@
                 $("#ezypay_form").show();
             }
 
-            function chooseGreenId() {
-                $("#ezypay_verification_message").hide();
-                $("#choose_verification").hide();
-
+            function greenidUISetup() {
 				// The setup function initialises the greenID Simple UI and passes in key variables, 
 				// such as the div ID where the form controls will be injected and the ID of your form.
 				// A full list of parameters is available at https://vixverify.atlassian.net/wiki/display/GREEN/Using+the+SimpleUI#UsingtheSimpleUI-JavascriptSetupforRegisteringaNewPerson
@@ -325,7 +322,14 @@
 				    preSubmitValidationCallback: onValidation,
                     registerCallback: onRegister
 			    });
-			    
+            }
+
+            function chooseGreenId() {
+                $("#ezypay_verification_message").hide();
+                $("#choose_verification").hide();
+
+                greenidUISetup();
+
 			    // if you want to override anything from the greenidConfig.js file, you would use this function
 			    greenidConfig.setOverrides();
 
@@ -338,6 +342,7 @@
             function continueGreenIdVerification() {
                 {% if greenid_verification_token %}
                 $("#greenid_continue").hide();
+                greenidUISetup();
                 greenidUI.show("{{account_id}}", "{{api_code}}", "{{greenid_verification_token}}");
                 {% endif %}
             }
