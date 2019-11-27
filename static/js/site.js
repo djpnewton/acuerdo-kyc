@@ -1,33 +1,30 @@
 // This file is not required for the greenID Simple UI.
 
-function getRequiredFields() 
+function getRequiredAddressFields()
 {
 	var country = $('#usethiscountry').val();
 	
 	var townCityElement = document.getElementById("townCity");
 	
-	var requiredFieldsOneFitsAll = [ "givenNames", "surname", "streetNumber",
-	           			"streetName", "suburb", "state", "postcode", "dob" ];
-	
-	var requiredFieldsWithNZTownCity = [ "givenNames", "surname", "streetNumber",
-	    	           			"streetName", "townCity", "postcode", "dob" ];
-
-	var requiredFieldsGB = [ "givenNames", "surname",
-	                         "streetName", "town", "postcode", "dob" ];
-
 	if (country === 'NZ' && townCityElement !== null)
 	{
-		return requiredFieldsWithNZTownCity;
+		return ["streetNumber", "streetName", "townCity", "postcode"];
 	}
 	else if (country === 'GB')
 	{
-		return requiredFieldsGB;
+		return ["streetName", "town", "postcode"];
 	}
 	else
 	{
-		return requiredFieldsOneFitsAll;	
+		return ["streetNumber", "streetName", "suburb", "state", "postcode"];
 	}
 }
+
+function getRequiredFields() 
+{
+    return ["givenNames", "surname", "dob"].concat(getRequiredAddressFields());
+}
+
 function isGeneralInjection (value)
 {
     return /^.*[=@<>|%]+.*/.test(value);
@@ -172,6 +169,18 @@ function checkRequiredFields() {
 	return allCool;
 };
 
+function checkRequiredAddressFields() {
+    var allCool = true;
+
+	$.each(getRequiredAddressFields(), function(index, value) {
+		if ($("#" + value).val() == "") {
+			allCool = false;
+		}
+	})
+	
+    return allCool;
+};
+
 function checkZip() {
 	
 }
@@ -231,7 +240,11 @@ function onValidation() {
 	if (countryIsUSA()) {
 		allValidAddress = checkValidUSAAddress();
 	}
-	
+
+	if (!checkRequiredAddressFields()) {
+		$('#address-non-harmony-div').show();
+	}
+
 	return allValidReq && allValidDob && allValidNames && allValidAddress;
 };
 
