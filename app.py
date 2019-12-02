@@ -21,7 +21,7 @@ app = Flask(__name__)
 PRODUCTION = os.environ.get('PRODUCTION', '')
 GREENID_WEBSERVICE_ENDPOINT = 'https://test-au.vixverify.com/Registrations-Registrations/DynamicFormsServiceV3?WSDL'
 if PRODUCTION:
-    GREENID_WEBSERVICE_ENDPOINT = 'todo_production_greenid_endpoint'
+    GREENID_WEBSERVICE_ENDPOINT = 'https://au.vixverify.com/Registrations-Registrations/DynamicFormsServiceV3?wsdl'
 GREENID_ACCOUNT_ID = os.environ.get('GREENID_ACCOUNT_ID', '')
 GREENID_SIMPLEUI_AUTH = os.environ.get('GREENID_SIMPLEUI_AUTH', '')
 GREENID_API_AUTH = os.environ.get('GREENID_API_AUTH', '')
