@@ -63,35 +63,41 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-12">
-                    {% if ezypay_verification_message %}
-                    <div id="ezypay_verification_message" class="alert alert-danger">
-                        {{ ezypay_verification_message }}
+                    {% if ezpay_verification_message %}
+                    <div id="ezpay_verification_message" class="alert alert-danger">
+                        {{ ezpay_verification_message }}
                     </div>
                     {% endif %}
 
                     {% if not completed %}
 
                     <div id="choose_verification" style="display: none">
-						<h3 style="margin-top: 40px;">Do you have a REDRAT EZYPAY Account?</h3>
-                        <button type="button" class="btn btn-primary" onclick="chooseEzyPay()">Yes</button>
-                        <button type="button" class="btn btn-primary" onclick="chooseGreenId()">No</button>
+                        <div class="col-sm-12">
+                            <h3 style="margin-top: 40px;">Do you have a REDRAT EZPAY Account?</h3>
+                            <img src="/static/img/ezpay-logo.jpg"/><br/>
+                            <button type="button" class="btn btn-primary" onclick="chooseEzPay()">Yes</button>
+                            <button type="button" class="btn btn-primary" onclick="chooseGreenId()">No</button>
+                        </div>
                     </div>
 
-                    <form id="ezypay_form" method="post" style="display: none">
+                    <form id="ezpay_form" method="post" style="display: none">
                         <input type="hidden" id="token" value="{{token}}" name="token"/>
                         <div class="row">
-                            <div class="form-group col-sm-6">
-                                <label for="ezypayEmail">EZYPAY Email</label>
-                                <input type="text" class="form-control" name="ezypayEmail" id="ezypayEmail" value="{{email}}" readonly>
+                            <div class="col-sm-12">
+                                <img src="/static/img/ezpay-logo.jpg"/>
                             </div>
-                            <div class="form-group col-sm-6">
-                                <label for="ezypayPass">Password</label>
-                                <input type="password" class="form-control" name="ezypayPass" id="ezypayPass">
+                            <div class="form-group col-sm-12">
+                                <label for="ezpayEmail">Email</label>
+                                <input type="text" class="form-control" name="ezpayEmail" id="ezpayEmail" value="{{email}}" readonly>
+                            </div>
+                            <div class="form-group col-sm-12">
+                                <label for="ezpayPass">Password</label>
+                                <input type="password" class="form-control" name="ezpayPass" id="ezpayPass">
                             </div>
                         </div>
 						<div class="row">
 							<div class="form-group col-sm-12">
-								<input value="Submit" type="submit" id="submitezypay" name="submitezypay" class="btn btn-primary" />
+								<input value="Submit" type="submit" id="submitezpay" name="submitezpay" class="btn btn-primary" />
 							</div>
 						</div>
                     </form>
@@ -306,10 +312,10 @@
                 {% endif %}
 			})
 
-            function chooseEzyPay() {
-                $("#ezypay_verification_message").hide();
+            function chooseEzPay() {
+                $("#ezpay_verification_message").hide();
                 $("#choose_verification").hide();
-                $("#ezypay_form").show();
+                $("#ezpay_form").show();
             }
 
             function greenidUISetup() {
@@ -333,7 +339,7 @@
             }
 
             function chooseGreenId() {
-                $("#ezypay_verification_message").hide();
+                $("#ezpay_verification_message").hide();
                 $("#choose_verification").hide();
 
                 greenidUISetup();
