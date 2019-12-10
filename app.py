@@ -89,7 +89,7 @@ def ezpay_get_verification_result(email, password):
         json = r.json()
         if json["success"]:
             if "creditlimit" in json and "creditstatus" in json:
-                if json["creditstatus"] in ("Elite", "EZPLUS"):
+                if json["creditstatus"] not in ("Applicant", "Declined", "EzPlus", "Pending", "Score"):
                     return True, None
         else:
             if json["message"] == "The email and password you entered don't match.":
