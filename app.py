@@ -110,6 +110,10 @@ def check_auth(api_key, sig, body):
     our_sig = create_sig(API_SECRET, body)
     return sig == our_sig
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+
 @app.route('/')
 def hello():
     if PRODUCTION:
