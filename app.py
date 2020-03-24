@@ -185,6 +185,7 @@ def request_action(token=None):
     # process any posted data
     greenid_verification_token = None
     ezpay_verification_message = None
+    locked_out = False
     if request.method == 'POST':
         # update [greenid] verification id if we got one
         greenid_verification_id = request.form.get('verificationId')
@@ -202,6 +203,8 @@ def request_action(token=None):
                 req.status = CMP
                 db_session.add(req)
                 db_session.commit()
+            if result == 'locked_out':
+                locked_out = True
         # check ezpay verification
         ezpay_pass = request.form.get('ezpayPass')
         if ezpay_pass:
@@ -215,7 +218,7 @@ def request_action(token=None):
         # get verification token so we can continue if needed
         greenid_verification_token = greenid_get_verification_token(req.greenid.greenid_verification_id)
     # render template
-    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, greenid_verification_id=req.greenid.greenid_verification_id, greenid_verification_token=greenid_verification_token, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS, ezpay_verification_message=ezpay_verification_message)
+    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==CMP, account_id=GREENID_ACCOUNT_ID, api_code=GREENID_SIMPLEUI_AUTH, greenid_verification_id=req.greenid.greenid_verification_id, greenid_verification_token=greenid_verification_token, locked_out=locked_out, email=email, harmony_user=HARMONY_USER, harmony_pass=HARMONY_PASS, ezpay_verification_message=ezpay_verification_message)
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)

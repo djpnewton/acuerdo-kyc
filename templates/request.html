@@ -103,8 +103,13 @@
                     </form>
 
                     <div id="greenid_continue" style="display: none">
+                        {% if locked_out %}
+						<h3 style="margin-top: 40px;">Locked out</h3>
+                        This account has been locked out. Please contact an administrator to reset this account ({{greenid_verification_id}}).
+                        {% else %}
 						<h3 style="margin-top: 40px;">Do you want to continue your verification?</h3>
                         <button type="button" class="btn btn-primary" onclick="continueGreenIdVerification()">Yes</button>
+                        {% endif %}
                     </div>
 
                     <div id="greenid_div" style="display: none">
