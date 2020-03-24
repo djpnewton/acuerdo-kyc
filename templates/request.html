@@ -281,7 +281,7 @@
         <script src="/static/js/bootstrap-datepicker.js"></script>
 
         <!-- green id helper stuff -->
-        <script src="/static/js/site.js"></script>
+        <script src="/static/js/site.js?v=20200324"></script>
 
         <!-- green id -->
         {% if production %}
@@ -334,7 +334,9 @@
 				    country: "usethiscountry",
 				    debug: true,
 				    preSubmitValidationCallback: onValidation,
-                    registerCallback: onRegister
+                    registerCallback: onRegister,
+                    sessionCompleteCallback: onSessionComplete,
+                    sessionCancelledCallback: onSessionCancelled
 			    });
             }
 
@@ -356,6 +358,7 @@
             function continueGreenIdVerification() {
                 {% if greenid_verification_token %}
                 $("#greenid_continue").hide();
+                console.log("init greenid - verification id: {{greenid_verification_id}}, verification token: {{greenid_verification_token}}");
                 greenidUISetup();
                 greenidUI.show("{{account_id}}", "{{api_code}}", "{{greenid_verification_token}}");
                 {% endif %}

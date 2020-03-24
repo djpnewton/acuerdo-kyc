@@ -255,6 +255,14 @@ function onRegister(verificationId, userData) {
     verificationTokenInput.value = userData.verificationToken;
 };
 
+function onSessionComplete(verificationToken, overallState) {
+    console.log("session complete, overall state: " + overallState);
+}
+
+function onSessionCancelled(verificationToken, overallState) {
+    console.log("session cancelled, overall state: " + overallState);
+}
+
 // Datepicker
 // noConflict() is needed if jQuery UI is included in the page
 var datepicker = $.fn.datepicker.noConflict();
