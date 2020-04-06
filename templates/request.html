@@ -106,6 +106,9 @@
                         {% if locked_out %}
 						<h3 style="margin-top: 40px;">Locked out</h3>
                         This account has been locked out. Please contact an administrator to reset this account ({{greenid_verification_id}}).
+                        {% elif pending %}
+						<h3 style="margin-top: 40px;">Pending review</h3>
+                        This account is pending review. Please contact an administrator to review this account ({{greenid_verification_id}}).
                         {% else %}
 						<h3 style="margin-top: 40px;">Do you want to continue your verification?</h3>
                         <button type="button" class="btn btn-primary" onclick="continueGreenIdVerification()">Yes</button>
