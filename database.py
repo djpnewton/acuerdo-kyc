@@ -8,7 +8,7 @@ if os.getenv("DATABASE_URL"):
 else:
     dir_path = os.path.dirname(os.path.realpath(__file__))
     db_url = "sqlite:///%s/kyc-test.db" % dir_path
-engine = create_engine(db_url, convert_unicode=True)
+engine = create_engine(db_url, convert_unicode=True, pool_pre_ping=True)
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
