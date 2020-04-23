@@ -9,6 +9,8 @@ import sys
 from flask import Flask, request, jsonify, abort, render_template
 import zeep
 import requests
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from database import db_session, init_db
 from models import KycRequest, GreenId, EzyPay, User, UserRequest
@@ -29,7 +31,11 @@ HARMONY_PASS = os.environ.get('HARMONY_PASS', '')
 EZPAY_WEBSERVICE_ENDPOINT = os.environ.get('EZPAY_WEBSERVICE_ENDPOINT', '')
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
+SITE_URL = os.environ.get('SITE_URL', '')
 PARENT_SITE = os.environ.get('PARENT_SITE', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
+EMAIL_TO = os.environ.get('EMAIL_TO', '')
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY', '')
 if not GREENID_ACCOUNT_ID:
     print('ERROR: no greenid account id')
     sys.exit(1)
@@ -54,8 +60,20 @@ if not API_KEY:
 if not API_SECRET:
     print('ERROR: no api secret')
     sys.exit(1)
+if not SITE_URL:
+    print('ERROR: no site url')
+    sys.exit(1)
 if not PARENT_SITE:
     print('ERROR: no parent site')
+    sys.exit(1)
+if not EMAIL_FROM:
+    print('ERROR: no from email')
+    sys.exit(1)
+if not EMAIL_TO:
+    print('ERROR: no to email')
+    sys.exit(1)
+if not SENDGRID_API_KEY:
+    print('ERROR: no sendgrid api key')
     sys.exit(1)
 
 def setup_logging(level):
@@ -169,6 +187,15 @@ def status():
         return jsonify(req.to_json())
     return abort(404)
 
+def send_greenid_notification_email(verification_id, result):
+    print("sending email to %s" % EMAIL_TO)
+    subject = '%s verification' % SITE_URL
+    html_content = 'verification id %s has result: %s<br/><br/>' % (verification_id, result)
+    message = Mail(from_email=EMAIL_FROM, to_emails=EMAIL_TO, subject=subject, html_content=html_content)
+
+    sg = SendGridAPIClient(SENDGRID_API_KEY)
+    response = sg.send(message)
+
 @app.route('/request/<token>', methods=['GET', 'POST'])
 def request_action(token=None):
     CMP = 'completed'
@@ -207,9 +234,17 @@ def request_action(token=None):
                 db_session.add(req)
                 db_session.commit()
             if result == 'locked_out':
+                try:
+                    send_greenid_notification_email(req.greenid.greenid_verification_id, result)
+                except:
+                    pass
                 locked_out = True
             if result == 'pending':
                 pending = True
+                try:
+                    send_greenid_notification_email(req.greenid.greenid_verification_id, result)
+                except:
+                    pass
         # check ezpay verification
         ezpay_pass = request.form.get('ezpayPass')
         if ezpay_pass:
