@@ -217,8 +217,8 @@ def request_action(token=None):
     if request.method == 'POST':
         # update [greenid] verification id if we got one
         greenid_verification_id = request.form.get('verificationId')
-        print("green id verification id: " + greenid_verification_id)
         if greenid_verification_id:
+            print("green id verification id: " + greenid_verification_id)
             greenid = GreenId(req, greenid_verification_id)
             db_session.add(greenid)
             db_session.commit()
