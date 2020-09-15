@@ -11,6 +11,7 @@ import json
 
 URL_BASE = "http://localhost:5000/"
 #URL_BASE = "https://bronze-kyc-test.herokuapp.com/"
+#URL_BASE = "https://kyc.bronze.exchange/"
 
 EXIT_NO_COMMAND = 1
 
