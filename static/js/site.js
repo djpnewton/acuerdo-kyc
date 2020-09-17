@@ -111,8 +111,8 @@ function isDobValid(value) {
 }
 
 function checkValidNames() {
-	var nameFields = [ "givenNames", "middleNames", "surname", "streetName",
-			"suburb" ];
+	//var nameFields = [ "givenNames", "middleNames", "surname", "streetName", "suburb" ];
+	var nameFields = [ "givenNames", "middleNames", "surname", "suburb" ]; // street names can have numbers (eg. 'STATE HIGHWAY 3')
 	var allCool = true;
 
 	$.each(nameFields, function(index, name) {
