@@ -20,6 +20,17 @@ class GreenId(Base):
         self.kyc_request = kyc_request
         self.greenid_verification_id = greenid_verification_id
 
+class AplyId(Base):
+    __tablename__ = 'aplyid'
+    id = Column(Integer, primary_key=True)
+    transaction_id = Column(String, nullable=False, unique=True)
+    kyc_request_id = Column(Integer, ForeignKey('kyc_requests.id'))
+    kyc_request = relationship("KycRequest", back_populates="aplyid")
+
+    def __init__(self, kyc_request, transaction_id):
+        self.kyc_request = kyc_request
+        self.transaction_id = transaction_id
+
 class EzyPay(Base):
     __tablename__ = 'ezypay'
     id = Column(Integer, primary_key=True)
@@ -43,6 +54,7 @@ class KycRequest(Base):
     token = Column(String, nullable=False, unique=True)
     status = Column(String)
     greenid = relationship("GreenId", uselist=False, back_populates="kyc_request")
+    aplyid = relationship("AplyId", uselist=False, back_populates="kyc_request")
     ezypay = relationship("EzyPay", uselist=False, back_populates="kyc_request")
 
     def __init__(self, token):
