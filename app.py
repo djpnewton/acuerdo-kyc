@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import base64
 import sys
+from io import BytesIO
 
 from flask import Flask, request, jsonify, abort, render_template
 import requests
@@ -27,6 +28,9 @@ if PRODUCTION:
 APLYID_API_KEY = os.environ.get('APLYID_API_KEY', '')
 APLYID_API_SECRET = os.environ.get('APLYID_API_SECRET', '')
 APLYID_WEBHOOK_BEARER_TOKEN = os.environ.get('APLYID_WEBHOOK_BEARER_TOKEN', '')
+B2_ACCT_ID = os.environ.get('B2_ACCT_ID', '')
+B2_APP_KEY = os.environ.get('B2_APP_KEY', '')
+B2_BUCKET = os.environ.get('B2_BUCKET', '')
 EZPAY_WEBSERVICE_ENDPOINT = os.environ.get('EZPAY_WEBSERVICE_ENDPOINT', '')
 API_KEY = os.environ.get('API_KEY', '')
 API_SECRET = os.environ.get('API_SECRET', '')
@@ -43,6 +47,15 @@ if not APLYID_API_SECRET:
     sys.exit(1)
 if not APLYID_WEBHOOK_BEARER_TOKEN:
     print('ERROR: no aplyid webhook bearer token')
+    sys.exit(1)
+if not B2_ACCT_ID:
+    print('ERROR: no backblaze b2 account id')
+    sys.exit(1)
+if not B2_APP_KEY:
+    print('ERROR: no backblaze b2 app key')
+    sys.exit(1)
+if not B2_BUCKET:
+    print('ERROR: no backblaze b2 bucket')
     sys.exit(1)
 if not EZPAY_WEBSERVICE_ENDPOINT:
     print('ERROR: no ezpay endpoint')
@@ -90,6 +103,62 @@ def aplyid_send_text(phone, token):
         print('failed to get transaction id')
         print(ex)
     return None
+
+def aplyid_download_pdf(transaction_id):
+    try:
+        headers = {'Aply-API-Key': APLYID_API_KEY, 'Aply-Secret': APLYID_API_SECRET}
+        r = requests.get(APLYID_BASE_URL + '/biometric/pdf/%s.pdf' % transaction_id, headers=headers)
+        r.raise_for_status()
+        return BytesIO(r.content)
+    except Exception as ex:
+        print('failed to get pdf')
+        print(ex)
+        print(r.text)
+    return None
+
+def backup_aplyid_pdf(token, transaction_id, pdf):
+    # calc pdf size and sha1
+    pdf_content = pdf.getbuffer()
+    pdf_size = str(len(pdf_content))
+    pdf_sha1 = hashlib.sha1(pdf_content).hexdigest()
+    try:
+        # if we have an application key get the account id that represents the mastker application key
+        ACCOUNT_ID = B2_ACCT_ID
+        if len(B2_ACCT_ID) > 12:
+            ACCOUNT_ID = B2_ACCT_ID[3:][:12]
+        # get auth token
+        creds = base64.b64encode((B2_ACCT_ID + ':' + B2_APP_KEY).encode('ascii')).decode('ascii')
+        headers = {'Authorization': 'Basic ' + creds}
+        r = requests.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', headers=headers)
+        r.raise_for_status()
+        data = r.json()
+        api_url = data['apiUrl']
+        auth_token = data['authorizationToken']
+        # get bucket id
+        headers = {'Authorization': auth_token}
+        body = {'accountId': ACCOUNT_ID, 'bucketName': B2_BUCKET}
+        r = requests.post(api_url + '/b2api/v2/b2_list_buckets', headers=headers, json=body)
+        r.raise_for_status()
+        data = r.json()
+        bucket_id = data['buckets'][0]['bucketId']
+        # get upload url
+        body = {'bucketId': bucket_id}
+        r = requests.post(api_url + '/b2api/v2/b2_get_upload_url', headers=headers, json=body)
+        r.raise_for_status()
+        data = r.json()
+        upload_url = data['uploadUrl']
+        upload_auth_token = data['authorizationToken']
+        # upload pdf
+        headers = {'Authorization': upload_auth_token, 'X-Bz-File-Name': '%s.pdf' % token, 'Content-Type': 'application/pdf', 'Content-Length': pdf_size, 'X-Bz-Content-Sha1': pdf_sha1}
+        r = requests.post(upload_url, headers=headers, data=pdf_content)
+        r.raise_for_status()
+        return True
+    except Exception as ex:
+        print('failed to backup pdf')
+        print(ex)
+        if r.text:
+            print(r.text)
+    return False
 
 def ezpay_get_verification_result(email, password):
     params = {"action": "userlogin", "email": email, "password": password, "pin": 1234, "pinagain": 1234}
@@ -240,7 +309,7 @@ def aplyid_webhook():
     # parse body
     data = request.get_json()
     print('aplyid webhook', data)
-    if data['event'] == 'completed':
+    if data['event'] == 'completed' and (data['verification']['status'] == 'pass' or data['verification']['status'] == 'reviewed'):
         token = data['reference']
         transaction_id = data['transaction_id']
         req = KycRequest.from_token(db_session, token)
@@ -254,7 +323,42 @@ def aplyid_webhook():
         db_session.add(req)
         db_session.commit()
         print('aplyid webhook completed - updated db')
+        # save pdf
+        pdf = aplyid_download_pdf(transaction_id)
+        if not pdf:
+            print('aplyid webhook error - unable to download pdf')
+            return abort(400, 'sorry, unable to download pdf')
+        if not backup_aplyid_pdf(token, transaction_id, pdf):
+            print('aplyid webhook error - unable to backup pdf')
+            return abort(400, 'sorry, unable to backup pdf')
     return 'ok'
+
+#@app.route('/test_pdf_upload')
+#def test_pdf_upload():
+#    pdf = BytesIO(b'hello dan')
+#    return str(backup_aplyid_pdf('token', 'transaction_id', pdf))
+#
+#@app.route('/test_pdf_download_upload/<transaction_id>')
+#def test_pdf_download_upload(transaction_id):
+#    pdf = aplyid_download_pdf(transaction_id)
+#    if not pdf:
+#        return 'failed to download pdf'
+#    return str(backup_aplyid_pdf('token', transaction_id, pdf))
+#
+#@app.route('/test_pdf_download/<transaction_id>')
+#def test_pdf_download(transaction_id):
+#    from flask import send_file
+#    pdf = aplyid_download_pdf(transaction_id)
+#    if not pdf:
+#        return 'failed to download pdf'
+#    return send_file(pdf, attachment_filename='test.pdf', mimetype='application/pdf')
+#
+#@app.route('/test_send_text')
+#def test_send_text():
+#    transaction_id = aplyid_send_text('64211146387', 't')
+#    if not transaction_id:
+#        return 'failed to send text'
+#    return transaction_id
 
 if __name__ == '__main__':
     setup_logging(logging.DEBUG)
