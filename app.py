@@ -284,7 +284,7 @@ def request_action(token=None):
                 db_session.commit()
                 aplyid_transaction_id = transaction_id
             else:
-                verification_message = 'unable to send text message, please ensure the mobile number is valid'
+                verification_message = 'unable to send text message, please ensure the mobile number is valid (make sure to enter a full international number with country code)'
         # check ezpay verification
         ezpay_pass = request.form.get('ezpayPass')
         if ezpay_pass:
