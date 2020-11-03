@@ -284,7 +284,7 @@ def request_action(token=None):
                 db_session.commit()
                 aplyid_transaction_id = transaction_id
             else:
-                verification_message = 'unable to send text message, please ensure the mobile number is valid (make sure to enter a full international number with country code)'
+                verification_message = 'unable to send text message, please ensure the mobile number is valid (country code first without the "+", followed by the phone number without any leading zeros "0")'
         # check ezpay verification
         ezpay_pass = request.form.get('ezpayPass')
         if ezpay_pass:
@@ -353,9 +353,9 @@ def aplyid_webhook():
 #        return 'failed to download pdf'
 #    return send_file(pdf, attachment_filename='test.pdf', mimetype='application/pdf')
 #
-#@app.route('/test_send_text')
-#def test_send_text():
-#    transaction_id = aplyid_send_text('64211146387', 't')
+#@app.route('/test_send_text/<number>')
+#def test_send_text(number):
+#    transaction_id = aplyid_send_text(number, 't')
 #    if not transaction_id:
 #        return 'failed to send text'
 #    return transaction_id
