@@ -2,7 +2,7 @@ import time
 
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 import sqlalchemy.types as types
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.sql.expression import func
 from sqlalchemy import or_, and_, desc
 from marshmallow import Schema, fields
@@ -76,6 +76,17 @@ class KycRequest(Base):
     def to_json(self):
         schema = KycRequestSchema()
         return schema.dump(self).data
+
+class KycRequestWebhook(Base):
+    __tablename__ = 'kyc_request_webhooks'
+    id = Column(Integer, primary_key=True)
+    kyc_request_id = Column(Integer, ForeignKey('kyc_requests.id'))
+    kyc_request = relationship('KycRequest', backref=backref('webhook', uselist=False))
+    url = Column(String)
+
+    def __init__(self, kyc_request, url):
+        self.kyc_request = kyc_request
+        self.url = url
 
 class User(Base):
     __tablename__ = 'users'

@@ -6,6 +6,7 @@ import hashlib
 import base64
 import sys
 from io import BytesIO
+import threading
 
 from flask import Flask, request, jsonify, abort, render_template
 import requests
@@ -13,7 +14,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 from database import db_session, init_db
-from models import KycRequest, AplyId, EzyPay, User, UserRequest
+from models import KycRequest, AplyId, EzyPay, User, UserRequest, KycRequestWebhook
 
 init_db()
 logger = logging.getLogger(__name__)
@@ -188,6 +189,23 @@ def check_auth(api_key, sig, body):
     our_sig = create_sig(API_SECRET, body)
     return sig == our_sig
 
+class AsyncRequest(threading.Thread):
+    def __init__(self, task_name, url):
+        threading.Thread.__init__(self)
+        self.task_name = task_name
+        self.url = url
+
+    def run(self):
+        try:
+            logger.info('::%s - requesting: %s' % (self.task_name, self.url))
+            requests.get(self.url)
+        except:
+            pass
+
+def call_webhook(req):
+    if req.webhook:
+        AsyncRequest('kyc request webhook', req.webhook.url).start()
+
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     db_session.remove()
@@ -206,6 +224,11 @@ def request_create():
     api_key = content['api_key']
     token = content['token']
     email = content['email']
+    webhook = None
+    try:
+        webhook = content['webhook']
+    except:
+        pass
     if not check_auth(api_key, sig, request.data):
         print('auth failure')
         abort(400)
@@ -216,6 +239,9 @@ def request_create():
     print("creating for %s" % token)
     req = KycRequest(token)
     db_session.add(req)
+    if webhook:
+        logger.info(':: adding webhook: %s' % webhook)
+        db_session.add(KycRequestWebhook(req, webhook))
     db_session.commit()
     # add user (store email in db)
     user = User.from_email(db_session, email)
@@ -294,6 +320,7 @@ def request_action(token=None):
                 req.status = STATUS_COMPLETED
                 db_session.add(req)
                 db_session.commit()
+                call_webhook(req)
     # render template
     return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==STATUS_COMPLETED, email=email, aplyid_transaction_id=aplyid_transaction_id, verification_message=verification_message)
 
@@ -322,6 +349,7 @@ def aplyid_webhook():
         req.status = STATUS_COMPLETED
         db_session.add(req)
         db_session.commit()
+        call_webhook(req)
         print('aplyid webhook completed - updated db')
         # save pdf
         pdf = aplyid_download_pdf(transaction_id)
