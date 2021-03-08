@@ -139,7 +139,7 @@
                     <br/>
                     <br/>
                     {% if aplyid_transaction_id %}
-                    aplyid: {{aplyid_transaction_id}}
+                    <span ondblclick="download_aplyid_pdf()">aplyid: {{aplyid_transaction_id}}</span>
                     {% elif completed %}
                     rrid: {{email}}
                     {% endif %}
@@ -197,6 +197,12 @@
                     window.ReactNativeWebView.postMessage("kycCompleted");
                 }
             });
+            {% endif %}
+
+            {% if aplyid_transaction_id %}
+            function download_aplyid_pdf() {
+                window.location = '/aplyid_pdf/{{token}}';
+            }
             {% endif %}
 
 		</script>

@@ -8,7 +8,7 @@ import sys
 from io import BytesIO
 import threading
 
-from flask import Flask, request, jsonify, abort, render_template
+from flask import Flask, request, jsonify, abort, render_template, make_response
 import requests
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -115,49 +115,83 @@ def aplyid_download_pdf(transaction_id):
         print(r.text)
     return None
 
-def backup_aplyid_pdf(token, transaction_id, pdf):
+def backblaze_auth_headers():
+    # get auth token
+    creds = base64.b64encode((B2_ACCT_ID + ':' + B2_APP_KEY).encode('ascii')).decode('ascii')
+    headers = {'Authorization': 'Basic ' + creds}
+    return headers
+
+def backblaze_authorize_account():
+    headers = backblaze_auth_headers()
+    r = requests.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', headers=headers)
+    r.raise_for_status()
+    data = r.json()
+    api_url = data['apiUrl']
+    download_url = data['downloadUrl']
+    auth_token = data['authorizationToken']
+    return api_url, download_url, auth_token
+
+def backblaze_get_bucket_id(api_url, auth_token):
+    # if we have an application key get the account id that represents the mastker application key
+    ACCOUNT_ID = B2_ACCT_ID
+    if len(B2_ACCT_ID) > 12:
+        ACCOUNT_ID = B2_ACCT_ID[3:][:12]
+    headers = {'Authorization': auth_token}
+    body = {'accountId': ACCOUNT_ID, 'bucketName': B2_BUCKET}
+    r = requests.post(api_url + '/b2api/v2/b2_list_buckets', headers=headers, json=body)
+    r.raise_for_status()
+    data = r.json()
+    bucket_id = data['buckets'][0]['bucketId']
+    return bucket_id
+
+def backblaze_get_upload_url(api_url, auth_token, bucket_id):
+    headers = {'Authorization': auth_token}
+    body = {'bucketId': bucket_id}
+    r = requests.post(api_url + '/b2api/v2/b2_get_upload_url', headers=headers, json=body)
+    r.raise_for_status()
+    data = r.json()
+    upload_url = data['uploadUrl']
+    upload_auth_token = data['authorizationToken']
+    return upload_url, upload_auth_token
+
+def backblaze_upload_pdf(upload_url, upload_auth_token, token, pdf):
     # calc pdf size and sha1
     pdf_content = pdf.getbuffer()
     pdf_size = str(len(pdf_content))
     pdf_sha1 = hashlib.sha1(pdf_content).hexdigest()
+    # upload pdf
+    headers = {'Authorization': upload_auth_token, 'X-Bz-File-Name': '%s.pdf' % token, 'Content-Type': 'application/pdf', 'Content-Length': pdf_size, 'X-Bz-Content-Sha1': pdf_sha1}
+    r = requests.post(upload_url, headers=headers, data=pdf_content)
+    r.raise_for_status()
+
+def backblaze_download_pdf(download_url, auth_token, token):
+    headers = {'Authorization': auth_token}
+    file_url = '{0}/file/{1}/{2}.pdf'.format(download_url, B2_BUCKET, token)
+    r = requests.get(file_url, headers=headers)
+    r.raise_for_status()
+    return r.content
+
+def backup_aplyid_pdf(token, transaction_id, pdf):
     try:
-        # if we have an application key get the account id that represents the mastker application key
-        ACCOUNT_ID = B2_ACCT_ID
-        if len(B2_ACCT_ID) > 12:
-            ACCOUNT_ID = B2_ACCT_ID[3:][:12]
-        # get auth token
-        creds = base64.b64encode((B2_ACCT_ID + ':' + B2_APP_KEY).encode('ascii')).decode('ascii')
-        headers = {'Authorization': 'Basic ' + creds}
-        r = requests.get('https://api.backblazeb2.com/b2api/v2/b2_authorize_account', headers=headers)
-        r.raise_for_status()
-        data = r.json()
-        api_url = data['apiUrl']
-        auth_token = data['authorizationToken']
-        # get bucket id
-        headers = {'Authorization': auth_token}
-        body = {'accountId': ACCOUNT_ID, 'bucketName': B2_BUCKET}
-        r = requests.post(api_url + '/b2api/v2/b2_list_buckets', headers=headers, json=body)
-        r.raise_for_status()
-        data = r.json()
-        bucket_id = data['buckets'][0]['bucketId']
-        # get upload url
-        body = {'bucketId': bucket_id}
-        r = requests.post(api_url + '/b2api/v2/b2_get_upload_url', headers=headers, json=body)
-        r.raise_for_status()
-        data = r.json()
-        upload_url = data['uploadUrl']
-        upload_auth_token = data['authorizationToken']
-        # upload pdf
-        headers = {'Authorization': upload_auth_token, 'X-Bz-File-Name': '%s.pdf' % token, 'Content-Type': 'application/pdf', 'Content-Length': pdf_size, 'X-Bz-Content-Sha1': pdf_sha1}
-        r = requests.post(upload_url, headers=headers, data=pdf_content)
-        r.raise_for_status()
+        api_url, download_url, auth_token = backblaze_authorize_account()
+        bucket_id = backblaze_get_bucket_id(api_url, auth_token)
+        upload_url, upload_auth_token = backblaze_get_upload_url(api_url, auth_token, bucket_id)
+        backblaze_upload_pdf(upload_url, upload_auth_token, token, pdf)
         return True
     except Exception as ex:
-        print('failed to backup pdf')
-        print(ex)
-        if r.text:
-            print(r.text)
+        logger.error('failed to backup pdf')
+        logger.error(ex)
     return False
+
+def download_pdf_backup(token):
+    try:
+        api_url, download_url, auth_token = backblaze_authorize_account()
+        pdf = backblaze_download_pdf(download_url, auth_token, token)
+        return pdf
+    except Exception as ex:
+        logger.error('failed to download pdf')
+        logger.error(ex)
+    return None
 
 def ezpay_get_verification_result(email, password):
     params = {"action": "userlogin", "email": email, "password": password, "pin": 1234, "pinagain": 1234}
@@ -286,9 +320,11 @@ def status():
 #    if not req:
 #        return abort(404, 'sorry, request not found')
 #    req.status = req.STATUS_CREATED
+#    req.aplyid = None
 #    db_session.add(req)
 #    db_session.commit()
-#    return 'ok'
+#    req = KycRequest.from_token(db_session, token)
+#    return 'ok (req.aplyid = {})'.format(req.aplyid)
 
 @app.route('/request/<token>', methods=['GET', 'POST'])
 def request_action(token=None):
@@ -331,6 +367,18 @@ def request_action(token=None):
                 call_webhook(req)
     # render template
     return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==req.STATUS_COMPLETED, email=email, aplyid_transaction_id=aplyid_transaction_id, verification_message=verification_message)
+
+@app.route('/aplyid_pdf/<token>', methods=['GET'])
+def aplyid_pdf(token=None):
+    req = KycRequest.from_token(db_session, token)
+    if not req:
+        return abort(404, 'sorry, request not found')
+    pdf = download_pdf_backup(token)
+    if not pdf:
+        return 'failed to download pdf'
+    response = make_response(pdf)
+    response.headers.set('Content-Type', 'application/pdf')
+    return response
 
 @app.route('/aplyid_webhook', methods=['POST'])
 def aplyid_webhook():
