@@ -20,8 +20,6 @@ init_db()
 logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
-STATUS_COMPLETED = 'completed'
-
 PRODUCTION = os.environ.get('PRODUCTION', '')
 APLYID_BASE_URL = 'https://integration.aply.co.nz/api/v2'
 if PRODUCTION:
@@ -282,6 +280,16 @@ def status():
 #    sg = SendGridAPIClient(SENDGRID_API_KEY)
 #    response = sg.send(message)
 
+#@app.route('/request/<token>/reset', methods=['GET'])
+#def request_action_reset(token=None):
+#    req = KycRequest.from_token(db_session, token)
+#    if not req:
+#        return abort(404, 'sorry, request not found')
+#    req.status = req.STATUS_CREATED
+#    db_session.add(req)
+#    db_session.commit()
+#    return 'ok'
+
 @app.route('/request/<token>', methods=['GET', 'POST'])
 def request_action(token=None):
     req = KycRequest.from_token(db_session, token)
@@ -317,15 +325,16 @@ def request_action(token=None):
             result, verification_message = ezpay_get_verification_result(email, ezpay_pass)
             print(verification_message)
             if result:
-                req.status = STATUS_COMPLETED
+                req.status = req.STATUS_COMPLETED
                 db_session.add(req)
                 db_session.commit()
                 call_webhook(req)
     # render template
-    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==STATUS_COMPLETED, email=email, aplyid_transaction_id=aplyid_transaction_id, verification_message=verification_message)
+    return render_template('request.html', production=PRODUCTION, parent_site=PARENT_SITE, token=token, completed=req.status==req.STATUS_COMPLETED, email=email, aplyid_transaction_id=aplyid_transaction_id, verification_message=verification_message)
 
 @app.route('/aplyid_webhook', methods=['POST'])
 def aplyid_webhook():
+    logger.info('aplyid webhook entry')
     # check bearer token
     auth_header = request.headers.get('Authorization')
     if not auth_header:
@@ -333,31 +342,38 @@ def aplyid_webhook():
     parts = auth_header.split(' ')
     if len(parts) != 2 or parts[0] != 'Bearer' or parts[1] != APLYID_WEBHOOK_BEARER_TOKEN:
         return abort(403)
+    logger.info('aplyid webhook authorized')
     # parse body
-    data = request.get_json()
-    print('aplyid webhook', data)
+    if not request.is_json:
+        logger.info('aplyid webhook not json')
+        return 'ok'
+    data = request.get_json(silent=True)
+    if not data:
+        logger.info('aplyid webhook payload is empty or was not parsable')
+        return 'ok'
+    logger.info('aplyid webhook, event: {0}, msg: {1}'.format(data['event'], data['message']))
     if data['event'] == 'completed' and (data['verification']['status'] == 'pass' or data['verification']['status'] == 'reviewed'):
         token = data['reference']
         transaction_id = data['transaction_id']
         req = KycRequest.from_token(db_session, token)
         if not req:
-            print('aplyid webhook error - request not found')
+            logger.error('aplyid webhook error - request not found')
             return abort(404, 'sorry, request not found')
         if not req.aplyid or req.aplyid.transaction_id != transaction_id:
-            print('aplyid webhook error - transaction id does not match')
+            logger.error('aplyid webhook error - transaction id does not match')
             return abort(404, 'sorry, transaction id does not match')
-        req.status = STATUS_COMPLETED
+        req.status = req.STATUS_COMPLETED
         db_session.add(req)
         db_session.commit()
         call_webhook(req)
-        print('aplyid webhook completed - updated db')
+        logger.info('aplyid webhook completed - updated db')
         # save pdf
         pdf = aplyid_download_pdf(transaction_id)
         if not pdf:
-            print('aplyid webhook error - unable to download pdf')
+            logger.error('aplyid webhook error - unable to download pdf')
             return abort(400, 'sorry, unable to download pdf')
         if not backup_aplyid_pdf(token, transaction_id, pdf):
-            print('aplyid webhook error - unable to backup pdf')
+            logger.error('aplyid webhook error - unable to backup pdf')
             return abort(400, 'sorry, unable to backup pdf')
     return 'ok'
 

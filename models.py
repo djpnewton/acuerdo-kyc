@@ -48,6 +48,9 @@ class KycRequestSchema(Schema):
     status = fields.String()
 
 class KycRequest(Base):
+    STATUS_CREATED = 'created'
+    STATUS_COMPLETED = 'completed'
+
     __tablename__ = 'kyc_requests'
     id = Column(Integer, primary_key=True)
     date = Column(Float, nullable=False, unique=False)
@@ -60,7 +63,7 @@ class KycRequest(Base):
     def __init__(self, token):
         self.date = time.time()
         self.token = token
-        self.status = "created"
+        self.status = self.STATUS_CREATED
 
     @classmethod
     def count(cls, session):
