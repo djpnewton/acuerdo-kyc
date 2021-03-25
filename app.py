@@ -400,7 +400,9 @@ def aplyid_webhook():
         logger.info('aplyid webhook payload is empty or was not parsable')
         return 'ok'
     logger.info('aplyid webhook, event: {0}, msg: {1}'.format(data['event'], data['message']))
-    if data['event'] == 'completed' and (data['verification']['status'] == 'pass' or data['verification']['status'] == 'reviewed'):
+    if (data['event'] == 'completed' or data['event'] == 'updated') and \
+       'verification' in data and \
+       (data['verification']['status'] == 'pass' or data['verification']['status'] == 'reviewed'):
         token = data['reference']
         transaction_id = data['transaction_id']
         req = KycRequest.from_token(db_session, token)
